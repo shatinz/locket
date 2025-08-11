@@ -12,12 +12,14 @@ def get_hardware_id():
     # Get Motherboard Serial Number (Windows/Linux)
     if platform.system() == "Windows":
         try:
-            output = subprocess.check_output("wmic baseboard get serialnumber", shell=True).decode().strip()
-            serial = output.split('\n')[1].strip()
-            if serial:
-                hwid_components.append(serial)
+            import wmi
+            c = wmi.WMI()
+            for board in c.Win32_BaseBoard():
+                if board.SerialNumber:
+                    hwid_components.append(board.SerialNumber.strip())
+                    break
         except Exception as e:
-            print(f"Could not get motherboard serial (Windows): {e}")
+            print(f"Could not get motherboard serial (WMI): {e}")
     elif platform.system() == "Linux":
         try:
             output = subprocess.check_output("sudo dmidecode -s baseboard-serial-number", shell=True).decode().strip()
@@ -29,12 +31,14 @@ def get_hardware_id():
     # Get CPU ID (Windows/Linux)
     if platform.system() == "Windows":
         try:
-            output = subprocess.check_output("wmic cpu get processorid", shell=True).decode().strip()
-            cpu_id = output.split('\n')[1].strip()
-            if cpu_id:
-                hwid_components.append(cpu_id)
+            import wmi
+            c = wmi.WMI()
+            for cpu in c.Win32_Processor():
+                if cpu.ProcessorId:
+                    hwid_components.append(cpu.ProcessorId.strip())
+                    break
         except Exception as e:
-            print(f"Could not get CPU ID (Windows): {e}")
+            print(f"Could not get CPU ID (WMI): {e}")
     elif platform.system() == "Linux":
         try:
             output = subprocess.check_output("grep -E '^(cpu serial|processor|model name)' /proc/cpuinfo | head -n 1", shell=True).decode().strip()
@@ -46,15 +50,14 @@ def get_hardware_id():
     # Get Disk Serial Number (Windows/Linux)
     if platform.system() == "Windows":
         try:
-            output = subprocess.check_output("wmic diskdrive get serialnumber", shell=True).decode().strip()
-            # Take the first non-empty serial number
-            for line in output.split('\n')[1:]:
-                serial = line.strip()
-                if serial:
-                    hwid_components.append(serial)
+            import wmi
+            c = wmi.WMI()
+            for disk in c.Win32_DiskDrive():
+                if disk.SerialNumber:
+                    hwid_components.append(disk.SerialNumber.strip())
                     break
         except Exception as e:
-            print(f"Could not get disk serial (Windows): {e}")
+            print(f"Could not get disk serial (WMI): {e}")
     elif platform.system() == "Linux":
         try:
             output = subprocess.check_output("sudo hdparm -I /dev/sda | grep 'Serial Number'", shell=True).decode().strip()
